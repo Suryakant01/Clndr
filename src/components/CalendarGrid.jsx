@@ -145,7 +145,7 @@ export default function CalendarGrid({
                             initial={{ opacity: 0, y: 10 }} 
                             animate={{ opacity: 1, y: 0 }} 
                             exit={{ opacity: 0 }} 
-                            className="absolute bottom-16 md:-bottom-2 left-1/2 -translate-x-1/2 z-20"
+                            className="absolute -bottom-26 md:-bottom-14 left-1/2 -translate-x-1/2 z-20"
                         >
                             <div className="bg-gray-900 text-white text-[11px] font-bold pl-4 pr-1.5 py-1.5 rounded-full shadow-xl flex items-center gap-3 border border-white/10 whitespace-nowrap">
                                 <span>{dayCount} DAYS SELECTED</span>
