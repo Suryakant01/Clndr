@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  /* Adding some custom theme variables inspired by the image */
+  --color-primary: #2563eb;
+  --color-primary-light: #eff6ff;
+  --color-surface: #ffffff;
+  --color-background: #f3f4f6;
+}
+
+body {
+  background-color: var(--color-background);
+}
+
+/* Custom spiral binding effect for the "Wall Calendar Aesthetic" */
+.spiral-binding {
+  background-image: radial-gradient(circle at 10px 10px, #4b5563 4px, transparent 5px);
+  background-size: 20px 20px;
+  background-position: center top;
+  height: 20px;
+  width: 100%;
+}
+
+@layer utilities {
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+}
