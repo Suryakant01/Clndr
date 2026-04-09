@@ -2,6 +2,28 @@ import { format, isSameMonth, isToday, isAfter, isBefore, differenceInDays, isSa
 import { ChevronLeft, ChevronRight, X, Loader2, Info, MousePointer2 } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Helper function to map Indian festival names to specific emojis
+const getIndianFestivalEmoji = (name) => {
+    if (!name) return "🎉";
+    const festival = name.toLowerCase();
+    
+    if (festival.includes('diwali') || festival.includes('deepavali')) return "🪔";
+    if (festival.includes('holi')) return "🎨";
+    if (festival.includes('eid')) return "🌙";
+    if (festival.includes('independence') || festival.includes('republic')) return "🇮🇳";
+    if (festival.includes('ganesh')) return "🐘";
+    if (festival.includes('raksha bandhan')) return "👫";
+    if (festival.includes('janmashtami')) return "🍯";
+    if (festival.includes('dussehra') || festival.includes('vijayadashami')) return "🏹";
+    if (festival.includes('christmas')) return "🎄";
+    if (festival.includes('pongal') || festival.includes('sankranti')) return "🌾";
+    if (festival.includes('lohri')) return "🔥";
+    if (festival.includes('gandhi')) return "👓";
+    if (festival.includes('navratri')) return "💃";
+    
+    return "🎉"; // Default fallback
+};
+
 export default function CalendarGrid({
     currentDate, calendarDays, range, hoverDate, handleDateClick, activeMenuDate, setActiveMenuDate,
     handleDateHover, getDayStatus, nextMonth, prevMonth, clearRange,
@@ -14,11 +36,6 @@ export default function CalendarGrid({
     if (activeStart && activeEnd) dayCount = Math.abs(differenceInDays(activeEnd, activeStart)) + 1;
 
     return (
-        /* 
-            FIX: Added pb-24 for mobile. 
-            This creates enough empty space at the bottom of the grid 
-            so the last row of dates is not blocked by the floating Flip Button.
-        */
         <div className="flex-1 select-none relative flex flex-col pb-24 md:pb-8 min-h-0">
             {/* Header */}
             <div className="flex justify-between items-center mb-6 shrink-0">
@@ -85,7 +102,17 @@ export default function CalendarGrid({
                                                 ${(isStart || isEnd) ? 'bg-blue-600 text-white shadow-lg scale-110' : 'hover:bg-gray-100'}`}
                                         >
                                             {format(day, 'd')}
-                                            {festival && isCurrentMonth && <span className="absolute -top-1.5 -right-1.5 text-[10px]">🎉</span>}
+                                            
+                                            {/* SPECIFIC EMOJI Logic */}
+                                            {festival && isCurrentMonth && (
+                                                <motion.span
+                                                    initial={{ scale: 0 }}
+                                                    animate={{ scale: 1 }}
+                                                    className="absolute -top-1.5 -right-1.5 text-[10px] drop-shadow-sm pointer-events-none"
+                                                >
+                                                    {getIndianFestivalEmoji(festival.name)}
+                                                </motion.span>
+                                            )}
                                         </motion.button>
 
                                         {/* Context Menu */}
@@ -111,26 +138,23 @@ export default function CalendarGrid({
                     </AnimatePresence>
                 )}
                 
-                {/* 
-                    FIX: Adjusted positioning for the Day Count popup. 
-                    Moved it up to bottom-16 on mobile to keep it above the flip button.
-                */}
+                {/* Day Count Popup positioned to avoid Flip Button */}
                 <AnimatePresence>
                     {dayCount > 1 && (
                         <motion.div 
                             initial={{ opacity: 0, y: 10 }} 
                             animate={{ opacity: 1, y: 0 }} 
                             exit={{ opacity: 0 }} 
-                            className="absolute -bottom-28 md:-bottom-12 left-1/2 -translate-x-1/2 z-20"
+                            className="absolute bottom-16 md:-bottom-2 left-1/2 -translate-x-1/2 z-20"
                         >
                             <div className="bg-gray-900 text-white text-[11px] font-bold pl-4 pr-1.5 py-1.5 rounded-full shadow-xl flex items-center gap-3 border border-white/10 whitespace-nowrap">
                                 <span>{dayCount} DAYS SELECTED</span>
-                                <button onClick={(e) => { e.stopPropagation(); clearRange(); }} className="bg-white/10 hover:bg-white/20 p-1 rounded-full transition-colors"><X size={12} strokeWidth={3} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); clearRange(); }} className="bg-white/10 hover:bg-white/20 p-1 rounded-full"><X size={12} strokeWidth={3} /></button>
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
-            </div> 
+            </div>
         </div>
     );
-} 
+}
