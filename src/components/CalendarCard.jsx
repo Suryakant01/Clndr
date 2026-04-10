@@ -93,7 +93,8 @@ export default function CalendarCard() {
         event={calendarProps.viewEventData} 
         onClose={calendarProps.closeEventModal} 
         onDelete={calendarProps.deleteEvent}
-      />
+          />
+          
     </>
   );
 }
