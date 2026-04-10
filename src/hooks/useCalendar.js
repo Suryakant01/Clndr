@@ -2,40 +2,31 @@ import { useState, useEffect, useMemo } from 'react';
 import { 
   addMonths, subMonths, startOfMonth, endOfMonth, 
   startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, 
-  isWithinInterval, isAfter, isBefore, getYear
+  isWithinInterval, isAfter, isBefore, getYear, setMonth
 } from 'date-fns';
+import { saveImageToDB, getImageFromDB } from '../utils/db';
 
 export function useCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState('month'); 
   
-  // Festival States
   const [festivals, setFestivals] = useState([]);
   const [loadingFestivals, setLoadingFestivals] = useState(true);
+  
+  // Modal States
   const [selectedFestival, setSelectedFestival] = useState(null);
+  const [saveRangeData, setSaveRangeData] = useState(null); // { start, end }
+  const [viewEventData, setViewEventData] = useState(null); // event object
 
-  // Range & Hover States
   const [range, setRange] = useState({ start: null, end: null });
   const [hoverDate, setHoverDate] = useState(null);
-  
-  // NEW: State for the "Choice Menu" on festival dates
   const [activeMenuDate, setActiveMenuDate] = useState(null); 
 
-  // Notes State
   const [notes, setNotes] = useState([]);
-    const monthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
-    
-    //images State
-    const [customImages, setCustomImages] = useState({});
-    useEffect(() => {
-    const savedImages = localStorage.getItem('calendar-custom-images');
-    if (savedImages) setCustomImages(JSON.parse(savedImages));
-}, []);
+  const [localEvents, setLocalEvents] = useState([]);
+  const [heroImage, setHeroImage] = useState(null);
 
-const updateHeroImage = (monthKey, base64Image) => {
-    const newImages = { ...customImages, [monthKey]: base64Image };
-    setCustomImages(newImages);
-    localStorage.setItem('calendar-custom-images', JSON.stringify(newImages));
-};
+  const monthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
 
   // Fetch Festivals
   useEffect(() => {
@@ -44,7 +35,7 @@ const updateHeroImage = (monthKey, base64Image) => {
       setLoadingFestivals(true);
       try {
         const apiKey = import.meta.env.VITE_CALENDARIFIC_API_KEY;
-        if (!apiKey) return;
+        if (!apiKey) { setLoadingFestivals(false); return; }
         const response = await fetch(`https://calendarific.com/api/v2/holidays?api_key=${apiKey}&country=IN&year=${year}`);
         const data = await response.json();
         if (data.response?.holidays) setFestivals(data.response.holidays);
@@ -63,30 +54,48 @@ const updateHeroImage = (monthKey, base64Image) => {
     return map;
   }, [festivals]);
 
-  // Load/Save Notes
+  // Load Data
   useEffect(() => {
-    const savedNotes = localStorage.getItem(`calendar-notes-${monthKey}`);
+    const savedNotes = localStorage.getItem(`clndr-notes-${monthKey}`);
     setNotes(savedNotes ? JSON.parse(savedNotes) : []);
+    
+    const savedEvents = localStorage.getItem('clndr-events');
+    if (savedEvents) setLocalEvents(JSON.parse(savedEvents));
+
+    getImageFromDB(monthKey).then(img => setHeroImage(img || null));
   }, [monthKey]);
 
   const saveNotes = (newNotes) => {
     setNotes(newNotes);
-    localStorage.setItem(`calendar-notes-${monthKey}`, JSON.stringify(newNotes));
+    localStorage.setItem(`clndr-notes-${monthKey}`, JSON.stringify(newNotes));
   };
 
-  const addNote = (text) => {
-    if (!text.trim()) return;
-    saveNotes([...notes, { id: Date.now(), text, scratched: false }]);
+  const addEvent = (event) => {
+    const updated = [...localEvents, { id: Date.now(), ...event }];
+    setLocalEvents(updated);
+    localStorage.setItem('clndr-events', JSON.stringify(updated));
   };
 
-  // Calendar Logic
-  const nextMonth = () => { setCurrentDate(addMonths(currentDate, 1)); setActiveMenuDate(null); };
-  const prevMonth = () => { setCurrentDate(subMonths(currentDate, 1)); setActiveMenuDate(null); };
-  
+  const deleteEvent = (id) => {
+    const updated = localEvents.filter(e => e.id !== id);
+    setLocalEvents(updated);
+    localStorage.setItem('clndr-events', JSON.stringify(updated));
+    setViewEventData(null); // Close modal on delete
+  };
+
+  const updateHeroImage = async (base64Image) => {
+    await saveImageToDB(monthKey, base64Image);
+    setHeroImage(base64Image);
+  };
+
+  const clearRange = () => { setRange({ start: null, end: null }); setHoverDate(null); };
+  const nextMonth = () => { setCurrentDate(addMonths(currentDate, 1)); setActiveMenuDate(null); clearRange(); };
+  const prevMonth = () => { setCurrentDate(subMonths(currentDate, 1)); setActiveMenuDate(null); clearRange(); };
+  const jumpToMonth = (m) => { setCurrentDate(setMonth(currentDate, m)); setViewMode('month'); };
+
   const handleDateClick = (day) => {
-    if (!range.start || (range.start && range.end)) {
-      setRange({ start: day, end: null });
-    } else {
+    if (!range.start || (range.start && range.end)) setRange({ start: day, end: null });
+    else {
       if (isBefore(day, range.start)) setRange({ start: day, end: range.start });
       else setRange({ ...range, end: day });
       setHoverDate(null);
@@ -109,16 +118,24 @@ const updateHeroImage = (monthKey, base64Image) => {
   };
 
   return {
-    currentDate, range, hoverDate, notes, festivalMap, loadingFestivals,
-    selectedFestival, activeMenuDate,customImages, updateHeroImage,
-    setActiveMenuDate, // Exported to close/open menu
-    addNote, toggleNote: (id) => saveNotes(notes.map(n => n.id === id ? { ...n, scratched: !n.scratched } : n)),
+    currentDate, range, hoverDate, notes, festivalMap, loadingFestivals, localEvents,
+    selectedFestival, activeMenuDate, heroImage, viewMode,
+    saveRangeData, viewEventData,
+    setNotes: saveNotes, setViewMode, jumpToMonth,
+    updateHeroImage, setActiveMenuDate, clearRange,
+    addEvent, deleteEvent,
+    addNote: (text) => saveNotes([...notes, { id: Date.now(), text, scratched: false }]),
+    toggleNote: (id) => saveNotes(notes.map(n => n.id === id ? { ...n, scratched: !n.scratched } : n)),
     deleteNote: (id) => saveNotes(notes.filter(n => n.id !== id)),
     openFestivalModal: (f) => setSelectedFestival(f),
     closeFestivalModal: () => setSelectedFestival(null),
+    openSaveModal: (r) => setSaveRangeData(r),
+    closeSaveModal: () => setSaveRangeData(null),
+    openEventModal: (e) => setViewEventData(e),
+    closeEventModal: () => setViewEventData(null),
     nextMonth, prevMonth, handleDateClick, 
     handleDateHover: (day) => { if (range.start && !range.end) setHoverDate(day); },
-    getDayStatus, clearRange: () => { setRange({ start: null, end: null }); setHoverDate(null); },
+    getDayStatus,
     calendarDays: eachDayOfInterval({ start: startOfWeek(startOfMonth(currentDate)), end: endOfWeek(endOfMonth(currentDate)) })
   };
 }

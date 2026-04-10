@@ -1,51 +1,42 @@
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, UploadCloud } from 'lucide-react'; // Added icons
+import { Camera } from 'lucide-react';
 import { getHeroImage } from '../utils/themeMap';
+import { compressImage } from '../utils/imageUtils';
 
-export default function HeroImage({ currentDate, customImages, updateHeroImage }) {
-  // 1. Determine the key for this specific month/year
-  const monthKey = format(currentDate, 'yyyy-MM');
-  
-  // 2. Priority: User Selected Image > Seasonal Default
-  const displayImage =
-  customImages?.[monthKey] || getHeroImage(currentDate);
+export default function HeroImage({ currentDate, heroImage, updateHeroImage }) {
+  const displayImage = heroImage || getHeroImage(currentDate);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateHeroImage(monthKey, reader.result); // Saves Base64 string
-      };
-      reader.readAsDataURL(file);
+      // Compress and resize image before saving to DB
+      const compressedBase64 = await compressImage(file, 1200, 0.8);
+      updateHeroImage(compressedBase64);
     }
   };
 
   return (
     <div 
-      className="relative h-56 md:h-72 w-full overflow-hidden bg-gray-900 group"
-      style={{ clipPath: 'polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%)' }}
+      className="relative h-56 md:h-72 w-full overflow-hidden bg-gray-900 group print:h-48"
+      style={{ clipPath: 'polygon(0 0, 100% 0, 100% 85%, 50% 100%, 0 85%)' }}
     >
-      {/* Animated Image Layer */}
       <AnimatePresence mode="wait">
         <motion.img
-          key={displayImage} // Animates on month change OR manual upload
+          key={displayImage}
           src={displayImage}
           alt="Calendar Hero"
           className="absolute inset-0 w-full h-full object-cover"
-          initial={{ opacity: 0, scale: 1.1 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, filter: "blur(10px)" }}
+          animate={{ opacity: 1, filter: "blur(0px)" }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.5 }}
         />
       </AnimatePresence>
       
-      {/* Dark gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
 
-      {/* CENTERED DATE BADGE */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center pointer-events-none">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center pointer-events-none text-center">
         <p className="text-sm font-semibold tracking-[0.3em] text-blue-200 uppercase drop-shadow-md">
           {format(currentDate, 'yyyy')}
         </p>
@@ -54,23 +45,11 @@ export default function HeroImage({ currentDate, customImages, updateHeroImage }
         </h2>
       </div>
 
-      {/* UPLOAD BUTTON: Top Right */}
-      <label className="absolute top-4 right-4 z-20 cursor-pointer p-2 bg-white/10 hover:bg-white/30 backdrop-blur-md rounded-full border border-white/20 transition-all group-hover:scale-110 active:scale-95 shadow-lg">
-        <Camera size={20} className="text-white" />
-        <input 
-          type="file" 
-          accept="image/*" 
-          className="hidden" 
-          onChange={handleFileChange} 
-        />
+      {/* UPLOAD BUTTON - Hidden in Print */}
+      <label className="no-print absolute top-4 left-4 z-20 cursor-pointer p-2 bg-white/10 hover:bg-white/30 backdrop-blur-md rounded-full border border-white/20 transition-all shadow-lg text-white">
+        <Camera size={20} />
+        <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
       </label>
-
-      {/* Subtle Hint on Hover */}
-      <div className="absolute top-5 right-14 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-        <span className="text-[10px] font-bold text-white bg-black/40 px-2 py-1 rounded-md uppercase tracking-tighter">
-          Change Month Photo
-        </span>
-      </div>
     </div>
   );
 }

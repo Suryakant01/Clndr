@@ -1,18 +1,28 @@
 @import "tailwindcss";
 
 @theme {
-  /* Adding some custom theme variables inspired by the image */
   --color-primary: #2563eb;
   --color-primary-light: #eff6ff;
   --color-surface: #ffffff;
   --color-background: #f3f4f6;
 }
 
-body {
-  background-color: var(--color-background);
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-surface: #1f2937;
+    --color-background: #111827;
+  }
+  body {
+    background-color: #111827;
+    color: #f3f4f6;
+  }
 }
 
-/* Custom spiral binding effect for the "Wall Calendar Aesthetic" */
+body {
+  background-color: var(--color-background);
+  transition: background-color 0.3s ease;
+}
+
 .spiral-binding {
   background-image: radial-gradient(circle at 10px 10px, #4b5563 4px, transparent 5px);
   background-size: 20px 20px;
@@ -21,8 +31,47 @@ body {
   width: 100%;
 }
 
+@media (prefers-color-scheme: dark) {
+  .spiral-binding {
+    background-image: radial-gradient(circle at 10px 10px, #1f2937 4px, transparent 5px);
+  }
+}
+
 @layer utilities {
   .perspective-1000 {
     perspective: 1000px;
+  }
+}
+
+/* Print Mode Adjustments */
+@media print {
+  body {
+    background-color: white !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only-border {
+    border: 1px solid #e5e7eb;
+  }
+  .shadow-2xl {
+    box-shadow: none !important;
+  }
+}
+
+/* Add this anywhere in index.css */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #475569;
   }
 }
